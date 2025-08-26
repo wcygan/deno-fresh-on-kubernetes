@@ -9,7 +9,8 @@ import {
   removeItem,
   updateQuantity,
 } from "../lib/cart-state.ts";
-import { formatMoney } from "../lib/client-utils.ts";
+import { formatMoney } from "../lib/money.ts";
+import { Button } from "../components/Button.tsx";
 
 /**
  * Main Cart component
@@ -69,27 +70,28 @@ export default function Cart() {
   }
 
   return (
-    <div class="bg-white rounded-2xl border shadow-sm p-4 sticky top-4">
+    <div class="card p-4 sticky top-4">
       {/* Header */}
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-900">
+        <h2 class="text-lg font-semibold text-neutral-900">
           Cart{" "}
           {itemCount.value > 0 && (
-            <span class="text-sm font-normal text-gray-500">
+            <span class="text-sm font-normal text-neutral-500">
               ({itemCount.value} {itemCount.value === 1 ? "item" : "items"})
             </span>
           )}
         </h2>
 
         {cartItems.value.length > 0 && (
-          <button
+          <Button
             type="button"
             onClick={clearCart}
-            class="text-sm text-gray-500 hover:text-red-600 transition-colors"
-            title="Clear cart"
+            variant="ghost"
+            size="sm"
+            class="text-neutral-600"
           >
             Clear
-          </button>
+          </Button>
         )}
       </div>
 
@@ -97,8 +99,8 @@ export default function Cart() {
       {cartItems.value.length === 0
         ? (
           <div class="text-center py-8">
-            <div class="text-gray-400 mb-2">🛒</div>
-            <p class="text-gray-500 text-sm">Your cart is empty</p>
+            <div class="text-neutral-400 mb-2">🛒</div>
+            <p class="text-neutral-500 text-sm">Your cart is empty</p>
           </div>
         )
         : (
@@ -124,7 +126,7 @@ export default function Cart() {
 
                   {/* Product Details */}
                   <div class="flex-1 min-w-0">
-                    <h3 class="font-medium text-gray-900 text-sm truncate">
+                    <h3 class="font-medium text-neutral-900 text-sm truncate">
                       {item.name}
                     </h3>
 
@@ -135,7 +137,7 @@ export default function Cart() {
                           type="button"
                           onClick={() =>
                             updateQuantity(item.priceId, item.quantity - 1)}
-                          class="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm"
+                          class="btn btn-ghost btn-sm rounded-full w-8 h-8"
                           disabled={item.quantity <= 1}
                         >
                           -
@@ -149,7 +151,7 @@ export default function Cart() {
                           type="button"
                           onClick={() =>
                             updateQuantity(item.priceId, item.quantity + 1)}
-                          class="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-sm"
+                          class="btn btn-ghost btn-sm rounded-full w-8 h-8"
                           disabled={item.quantity >= 20}
                         >
                           +
@@ -158,19 +160,21 @@ export default function Cart() {
 
                       {/* Price and Remove */}
                       <div class="text-right">
-                        <div class="font-semibold text-sm text-gray-900">
+                        <div class="font-semibold text-sm text-neutral-900">
                           {formatMoney(
                             item.unitAmount * item.quantity,
                             item.currency,
                           )}
                         </div>
-                        <button
+                        <Button
                           type="button"
                           onClick={() => removeItem(item.priceId)}
-                          class="text-xs text-red-500 hover:text-red-700 transition-colors mt-1"
+                          variant="danger"
+                          size="sm"
+                          class="mt-1 text-xs"
                         >
                           Remove
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -179,10 +183,10 @@ export default function Cart() {
             </div>
 
             {/* Cart Summary */}
-            <div class="border-t pt-4 space-y-4">
+            <div class="border-t border-border pt-4 space-y-4">
               <div class="flex items-center justify-between">
-                <span class="font-semibold text-gray-900">Total</span>
-                <span class="font-bold text-lg text-gray-900">
+                <span class="font-semibold text-neutral-900">Total</span>
+                <span class="font-bold text-lg text-neutral-900">
                   {/* Use first item's currency for total display */}
                   {formatMoney(
                     cartTotal.value,
@@ -192,14 +196,16 @@ export default function Cart() {
               </div>
 
               {/* Checkout Button */}
-              <button
+              <Button
                 type="button"
                 onClick={handleCheckout}
                 disabled={cartItems.value.length === 0}
-                class="w-full bg-black text-white py-3 px-4 rounded-xl font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                variant="primary"
+                size="lg"
+                class="w-full"
               >
                 Checkout
-              </button>
+              </Button>
             </div>
           </>
         )}

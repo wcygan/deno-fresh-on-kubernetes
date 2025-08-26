@@ -231,11 +231,13 @@ client-side overhead.
 
 **NEVER** violate these rules or islands will fail to hydrate properly:
 
-1. **Server-Only Dependencies**: Islands cannot import modules with server-only dependencies
+1. **Server-Only Dependencies**: Islands cannot import modules with server-only
+   dependencies
    - ❌ **Bad**: Importing `lib/stripe.ts` (has NodeCache, server-only APIs)
    - ✅ **Good**: Create `lib/client-utils.ts` with browser-safe utilities
 
-2. **Cross-Island Communication**: Islands cannot directly import functions from other islands
+2. **Cross-Island Communication**: Islands cannot directly import functions from
+   other islands
    - ❌ **Bad**: `import { addToCart } from "./Cart.tsx"`
    - ✅ **Good**: Use shared signals in `lib/cart-state.ts`
 
@@ -243,19 +245,22 @@ client-side overhead.
    - ❌ **Bad**: Passing complex objects with methods
    - ✅ **Good**: Extract primitive values and pass individually
 
-4. **Self-Contained Components**: Islands should not depend on parent DOM structure
+4. **Self-Contained Components**: Islands should not depend on parent DOM
+   structure
    - ❌ **Bad**: Island returning `<li>` that requires parent `<ul>`
    - ✅ **Good**: Island returns complete `<div>`, wrap in `<li>` on server
 
 ### Problem: Non-Working Interactive Buttons
 
-**Symptoms**: Buttons in islands don't respond to clicks, no console output, no hydration
+**Symptoms**: Buttons in islands don't respond to clicks, no console output, no
+hydration
 
 **Root Causes**:
+
 ```typescript
 // ❌ WRONG - This breaks island hydration
 import { formatMoney } from "../lib/stripe.ts"; // Server-only dependencies
-import { addToCart } from "./Cart.tsx";         // Cross-island imports
+import { addToCart } from "./Cart.tsx"; // Cross-island imports
 
 export default function ProductCard({ product }: { product: Product }) {
   return <li>...</li>; // Wrong DOM structure
@@ -263,19 +268,20 @@ export default function ProductCard({ product }: { product: Product }) {
 ```
 
 **Solution Pattern**:
+
 ```typescript
 // ✅ CORRECT - This enables proper hydration
-import { formatMoney } from "../lib/client-utils.ts";  // Client-safe utilities
-import { addToCart } from "../lib/cart-state.ts";      // Shared signals
+import { formatMoney } from "../lib/client-utils.ts"; // Client-safe utilities
+import { addToCart } from "../lib/cart-state.ts"; // Shared signals
 
-export default function ProductCard({ 
-  name, 
-  price, 
-  currency 
-}: { 
-  name: string; 
-  price: number; 
-  currency: string; 
+export default function ProductCard({
+  name,
+  price,
+  currency,
+}: {
+  name: string;
+  price: number;
+  currency: string;
 }) {
   return <div>...</div>; // Self-contained structure
 }
@@ -297,43 +303,48 @@ export function addToCart(item: CartItem) {
 ```
 
 Both islands import from this shared state:
+
 ```typescript
 // islands/ProductCard.tsx
 import { addToCart } from "../lib/cart-state.ts";
 
-// islands/Cart.tsx  
+// islands/Cart.tsx
 import { cartItems } from "../lib/cart-state.ts";
 ```
 
 ### Server-Client Separation
 
 **Server Component** (routes/index.tsx):
+
 - Fetches data from APIs/databases
 - Passes serializable props to islands
 - Handles DOM structure (`<ul><li>`)
 
 **Island Component** (islands/ProductCard.tsx):
+
 - Receives primitive props only
 - Handles client-side interactivity
 - Self-contained DOM structure
 
 ```typescript
 // Server component
-{products.map(product => (
-  <li key={product.id}>
-    <ProductCard 
-      name={product.name}
-      price={product.default_price?.unit_amount}
-      currency={product.default_price?.currency}
-    />
-  </li>
-))}
+{
+  products.map((product) => (
+    <li key={product.id}>
+      <ProductCard
+        name={product.name}
+        price={product.default_price?.unit_amount}
+        currency={product.default_price?.currency}
+      />
+    </li>
+  ));
+}
 ```
 
 ### Debugging Islands
 
 1. **Check Browser Console**: Islands should log on mount if working
-2. **Verify Props**: Ensure all props are JSON-serializable  
+2. **Verify Props**: Ensure all props are JSON-serializable
 3. **Check Imports**: No server-only dependencies in island files
 4. **Test Isolation**: Temporarily simplify island to minimal button test
 
@@ -348,4 +359,5 @@ When converting server components to islands:
 - [ ] Wrap island in proper parent structure on server
 - [ ] Test interactivity in browser console
 
-Following these patterns ensures islands hydrate correctly and interactive features work as expected.
+Following these patterns ensures islands hydrate correctly and interactive
+features work as expected.

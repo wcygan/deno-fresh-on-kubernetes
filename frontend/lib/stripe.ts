@@ -3,6 +3,7 @@ import "jsr:@std/dotenv/load";
 import Stripe from "stripe";
 import NodeCache from "node-cache";
 import { z } from "zod";
+import { formatMoney } from "./money.ts";
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
 if (!STRIPE_SECRET_KEY) {
@@ -94,14 +95,4 @@ export function getCacheStats() {
   };
 }
 
-export function formatMoney(cents: number, currency: string): string {
-  const amount = cents / 100;
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${currency.toUpperCase()}`;
-  }
-}
+export { formatMoney };

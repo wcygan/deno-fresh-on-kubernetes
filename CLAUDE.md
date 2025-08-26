@@ -96,4 +96,9 @@ deno task check    # Format, lint, type check
 deno task test     # All tests must pass
 ```
 
+### Frontend UI Contract
+All changes under `/frontend` that affect UI must adhere to `/frontend/DESIGN.md`:
+- Use tokens + primitives; no ad-hoc colors/radii/shadows.
+- CI/hooks may fail edits that violate the contract.
+
 The codebase uses Fresh 2.0 alpha features and follows modern Deno patterns with comprehensive Kubernetes deployment automation.

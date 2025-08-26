@@ -22,9 +22,8 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 /**
  * Read raw request body for webhook signature verification
  */
-async function readRawBody(req: Request): Promise<Uint8Array> {
-  const arrayBuffer = await req.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
+async function readRawBody(req: Request): Promise<string> {
+  return await req.text();
 }
 
 /**

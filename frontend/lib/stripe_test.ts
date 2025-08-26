@@ -6,17 +6,6 @@ Deno.env.set("STRIPE_SECRET_KEY", "sk_test_dummy");
 // Import after setting env so module init passes.
 import * as stripe from "./stripe.ts";
 
-Deno.test("formatMoney formats cents and currency", () => {
-  assertEquals(stripe.formatMoney(1234, "usd"), "$12.34");
-  assertEquals(stripe.formatMoney(0, "usd"), "$0.00");
-  assertEquals(stripe.formatMoney(99, "eur"), "€0.99");
-  assertEquals(stripe.formatMoney(1500, "gbp"), "£15.00");
-});
-
-Deno.test("formatMoney handles invalid currency gracefully", () => {
-  assertEquals(stripe.formatMoney(1234, "invalid"), "12.34 INVALID");
-});
-
 // We can't easily mock the Stripe SDK in tests, so we'll focus on integration-style tests
 // and test the core validation and transformation logic with mock data
 

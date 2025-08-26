@@ -8,7 +8,7 @@ export default define.page(async function Home() {
   const products: Product[] = await listProducts(24);
 
   return (
-    <div class="px-4 py-8 mx-auto bg-gray-50 min-h-screen">
+    <div class="px-4 py-8 mx-auto min-h-screen">
       <Head>
         <title>Products - Fresh Store</title>
         <meta
@@ -18,8 +18,8 @@ export default define.page(async function Home() {
       </Head>
       <div class="mx-auto max-w-7xl">
         <div class="mb-8">
-          <h1 class="text-4xl font-bold text-gray-900 mb-2">Products</h1>
-          <p class="text-gray-600">Browse our collection of products</p>
+          <h1 class="text-4xl font-bold text-neutral-900 mb-2">Products</h1>
+          <p class="text-neutral-600">Browse our collection of products</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -28,10 +28,10 @@ export default define.page(async function Home() {
             {products.length === 0
               ? (
                 <div class="text-center py-12">
-                  <p class="text-gray-500 text-lg">
+                  <p class="text-neutral-500 text-lg">
                     No products available at the moment.
                   </p>
-                  <p class="text-gray-400 text-sm mt-2">
+                  <p class="text-neutral-400 text-sm mt-2">
                     Make sure your Stripe account has active products
                     configured.
                   </p>
