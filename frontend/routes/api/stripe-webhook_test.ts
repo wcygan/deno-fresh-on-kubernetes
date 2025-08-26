@@ -91,9 +91,10 @@ const mockStripe = {
 };
 
 // Mock the Stripe constructor
-const originalStripe = (globalThis as any).Stripe;
 // @ts-ignore: Mocking for tests
-(globalThis as any).Stripe = function () {
+const originalStripe = (globalThis as unknown as { Stripe?: unknown }).Stripe;
+// @ts-ignore: Mocking for tests
+(globalThis as unknown as { Stripe: unknown }).Stripe = function () {
   return mockStripe;
 };
 
@@ -251,5 +252,5 @@ if (originalEnv.STRIPE_WEBHOOK_SECRET) {
 
 if (originalStripe) {
   // @ts-ignore: Restoring after test
-  (globalThis as any).Stripe = originalStripe;
+  (globalThis as unknown as { Stripe: unknown }).Stripe = originalStripe;
 }
