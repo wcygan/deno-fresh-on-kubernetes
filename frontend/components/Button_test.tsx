@@ -10,9 +10,9 @@ Deno.test("Button accepts props", () => {
   const props = {
     id: "test-button",
     onClick: () => {},
-    children: "Click me"
+    children: "Click me",
   };
-  
+
   const component = Button(props);
   assertExists(component);
   assertEquals(typeof component, "object");

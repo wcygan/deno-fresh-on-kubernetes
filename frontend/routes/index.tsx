@@ -27,6 +27,15 @@ export default define.page(function Home(ctx) {
           <code class="mx-2">./routes/index.tsx</code> file, and refresh.
         </p>
         <Counter count={count} />
+
+        <div class="mt-8">
+          <a
+            href="/products"
+            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          >
+            View Products
+          </a>
+        </div>
       </div>
     </div>
   );

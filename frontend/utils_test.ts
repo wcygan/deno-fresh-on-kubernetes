@@ -8,9 +8,9 @@ Deno.test("define export exists and is an object", () => {
 
 Deno.test("State interface has shared property", () => {
   const testState: State = {
-    shared: "test value"
+    shared: "test value",
   };
-  
+
   assertEquals(testState.shared, "test value");
 });
 
@@ -18,7 +18,7 @@ Deno.test("define has expected Fresh helper methods", () => {
   assertExists(define.page);
   assertExists(define.handlers);
   assertExists(define.middleware);
-  
+
   assertEquals(typeof define.page, "function");
   assertEquals(typeof define.handlers, "function");
   assertEquals(typeof define.middleware, "function");
