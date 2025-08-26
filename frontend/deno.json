@@ -28,7 +28,8 @@
     "@tailwindcss/postcss": "npm:@tailwindcss/postcss@^4.1.10",
     "postcss": "npm:postcss@^8.5.6",
     "zod": "npm:zod@^3.23.8",
-    "stripe": "npm:stripe@^17.4.0"
+    "stripe": "npm:stripe@^17.4.0",
+    "node-cache": "npm:node-cache@^5.1.2"
   },
   "compilerOptions": {
     "lib": [

@@ -17,7 +17,6 @@ Deno.test("formatMoney handles invalid currency gracefully", () => {
   assertEquals(stripe.formatMoney(1234, "invalid"), "12.34 INVALID");
 });
 
-
 // We can't easily mock the Stripe SDK in tests, so we'll focus on integration-style tests
 // and test the core validation and transformation logic with mock data
 
@@ -157,8 +156,27 @@ Deno.test("listProducts fails gracefully with invalid API key", () => {
 Deno.test("stripe module exports expected types and functions", () => {
   assertExists(stripe.listProducts);
   assertExists(stripe.formatMoney);
+  assertExists(stripe.clearProductsCache);
+  assertExists(stripe.getCacheStats);
 
-  // Verify formatMoney is a function
+  // Verify functions are exported
   assertEquals(typeof stripe.formatMoney, "function");
   assertEquals(typeof stripe.listProducts, "function");
+  assertEquals(typeof stripe.clearProductsCache, "function");
+  assertEquals(typeof stripe.getCacheStats, "function");
 });
+
+Deno.test("cache management functions work correctly", () => {
+  // Clear cache to start fresh
+  stripe.clearProductsCache();
+
+  // Check cache stats
+  const stats = stripe.getCacheStats();
+  assertExists(stats.keys);
+  assertExists(stats.stats);
+  assertEquals(typeof stats.keys, "number");
+});
+
+// Note: Testing actual cache behavior with real Stripe calls is complex
+// in a unit test environment. The cache behavior is best tested through
+// integration tests or manual testing with the dev server.
