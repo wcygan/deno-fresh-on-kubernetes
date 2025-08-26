@@ -1,8 +1,10 @@
-# Fresh
+---
+sidebar_position: 1
+---
 
-## Kubernetes Deployment Architecture
+# Deno Fresh on Kubernetes
 
-The following diagram shows how a Deno Fresh application is deployed on Kubernetes with 3 replicas and served through an nginx ingress controller:
+**Goal**: Run a Deno Fresh application on a Kubernetes cluster.
 
 ```mermaid
 graph LR
@@ -46,10 +48,3 @@ graph LR
     style service fill:#fce4ec,stroke:#c2185b,stroke-width:2px
     style app fill:#e0f2f1,stroke:#00695c,stroke-width:2px
 ```
-
-This architecture provides:
-
-- **High Availability**: 3 replicas ensure the application stays running even if one pod fails
-- **Load Distribution**: Traffic is automatically distributed across all healthy pods
-- **External Access**: nginx ingress provides HTTPS termination and routing from the internet
-- **Service Discovery**: Kubernetes service handles internal load balancing and pod discovery
