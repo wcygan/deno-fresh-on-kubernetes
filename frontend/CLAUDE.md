@@ -111,7 +111,6 @@ Follow Deno's testing standards from https://docs.deno.com/runtime/fundamentals/
 - GitHub Actions support with `denoland/setup-deno`
 - Cache dependencies for faster builds
 - Run tests, formatting, and linting in CI
-- Deploy to Deno Deploy directly from CI
 
 ## Fresh Framework Deep Dive
 
@@ -124,7 +123,7 @@ Fresh is an edge-first, zero build-step, full-stack web framework built specific
 - **Zero build step**: No bundling or transpiling upfront; code runs as-is with Deno handling TSX/JSX just-in-time
 - **Server-rendered by default**: Ships plain HTML to clients with no JavaScript payload unless explicitly added
 - **Islands architecture**: Small, interactive components (islands) rehydrated client-side only where needed
-- **Edge-native performance**: Optimized for edge runtimes, especially Deno Deploy, enabling fast global delivery
+- **Edge-native performance**: Optimized for edge runtimes
 - **File-system routing**: Next.js-inspired routing with TypeScript support out of the box
 
 ### Architecture Concepts
