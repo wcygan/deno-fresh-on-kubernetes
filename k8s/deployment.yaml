@@ -27,6 +27,23 @@ spec:
           env:
             - name: PORT
               value: "8000"
+            # Stripe configuration from secrets
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secrets
+                  key: STRIPE_SECRET_KEY
+            - name: STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secrets
+                  key: STRIPE_WEBHOOK_SECRET
+            - name: STRIPE_PUBLISHABLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secrets
+                  key: STRIPE_PUBLISHABLE_KEY
+                  optional: true
           readinessProbe:
             httpGet:
               path: /
