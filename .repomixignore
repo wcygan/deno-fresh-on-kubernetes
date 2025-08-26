@@ -1,0 +1,4 @@
+.idea
+frontend/deno.lock
+docs/bun.lock
+docs/static/*
