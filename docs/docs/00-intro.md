@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Deno Fresh on Kubernetes
 
-**Goal**: Run a Deno Fresh application on a Kubernetes cluster.
+**Goal**: Run a [Deno Fresh](https://fresh.deno.dev/) application (with [Stripe](https://stripe.com/) integration) on a [Kubernetes](https://kubernetes.io/) cluster:
 
 ```mermaid
 graph LR
