@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Hook to format and lint before editing files
+# This ensures consistent code style
+
+# Trigger before edit operations on TypeScript/TSX files
+if [[ "$CLAUDE_HOOK_TOOL_NAME" == "Edit" || "$CLAUDE_HOOK_TOOL_NAME" == "MultiEdit" || "$CLAUDE_HOOK_TOOL_NAME" == "Write" ]]; then
+  # Get the file path from the tool parameters
+  FILE_PATH=$(echo "$CLAUDE_HOOK_PARAMS" | grep -o '"file_path":"[^"]*"' | cut -d'"' -f4)
+  
+  # Check if it's a TypeScript/TSX file in the frontend directory
+  if [[ "$FILE_PATH" == *frontend/*.ts || "$FILE_PATH" == *frontend/*.tsx ]]; then
+    echo "📝 Formatting and linting before edit..."
+    
+    # Format the code
+    cd frontend && deno fmt
+    
+    # Lint the code
+    deno lint
+    
+    if [ $? -ne 0 ]; then
+      echo "⚠️ Linting issues detected. Proceeding with caution..."
+    fi
+  fi
+fi

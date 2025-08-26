@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Hook to run tests after any file edit/write operation
+# This ensures all code changes maintain test integrity
+
+# Trigger on any edit, write, or multi-edit operation
+if [[ "$CLAUDE_HOOK_TOOL_NAME" == "Edit" || "$CLAUDE_HOOK_TOOL_NAME" == "MultiEdit" || "$CLAUDE_HOOK_TOOL_NAME" == "Write" ]]; then
+  echo "🧪 Running tests after $CLAUDE_HOOK_TOOL_NAME operation..."
+  
+  # Run the tests
+  cd frontend && deno task test
+  
+  # Check test result
+  if [ $? -eq 0 ]; then
+    echo "✅ All tests passed!"
+  else
+    echo "❌ Tests failed! Please fix the failing tests before continuing."
+    exit 1
+  fi
+fi
