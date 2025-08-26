@@ -16,6 +16,7 @@
     "up": "skaffold dev -p dev --port-forward",
     "down": "skaffold delete",
     "build": "skaffold build --push=false",
-    "test": "cd frontend && deno task test"
+    "test": "cd frontend && deno task test",
+    "convert-to-agents": "deno run --allow-read --allow-write scripts/convert-to-agents-md.ts"
   }
 }
