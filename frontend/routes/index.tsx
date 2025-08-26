@@ -1,41 +1,79 @@
-import { useSignal } from "@preact/signals";
 import { Head } from "fresh/runtime";
 import { define } from "../utils.ts";
-import Counter from "../islands/Counter.tsx";
+import { formatMoney, listProducts, type Product } from "../lib/stripe.ts";
 
-export default define.page(function Home(ctx) {
-  const count = useSignal(3);
-
-  console.log("Shared value " + ctx.state.shared);
+export default define.page(async function Home() {
+  const products: Product[] = await listProducts(24);
 
   return (
-    <div class="px-4 py-8 mx-auto fresh-gradient min-h-screen">
+    <div class="px-4 py-8 mx-auto bg-gray-50 min-h-screen">
       <Head>
-        <title>Fresh counter: {count}</title>
-      </Head>
-      <div class="max-w-screen-md mx-auto flex flex-col items-center justify-center">
-        <img
-          class="my-6"
-          src="/logo.svg"
-          width="128"
-          height="128"
-          alt="the Fresh logo: a sliced lemon dripping with juice"
+        <title>Products - Fresh Store</title>
+        <meta
+          name="description"
+          content="Browse our products powered by Stripe"
         />
-        <h1 class="text-4xl font-bold">Welcome to Fresh</h1>
-        <p class="my-4">
-          Try updating this message in the
-          <code class="mx-2">./routes/index.tsx</code> file, and refresh.
-        </p>
-        <Counter count={count} />
-
-        <div class="mt-8">
-          <a
-            href="/products"
-            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
-            View Products
-          </a>
+      </Head>
+      <div class="mx-auto max-w-6xl">
+        <div class="mb-8">
+          <h1 class="text-4xl font-bold text-gray-900 mb-2">Products</h1>
+          <p class="text-gray-600">Browse our collection of products</p>
         </div>
+
+        {products.length === 0
+          ? (
+            <div class="text-center py-12">
+              <p class="text-gray-500 text-lg">
+                No products available at the moment.
+              </p>
+              <p class="text-gray-400 text-sm mt-2">
+                Make sure your Stripe account has active products configured.
+              </p>
+            </div>
+          )
+          : (
+            <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((p) => (
+                <li
+                  key={p.id}
+                  class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div class="aspect-square mb-4 overflow-hidden rounded-xl bg-gray-100">
+                    <img
+                      src={p.images?.[0] ?? "/logo.svg"}
+                      alt={p.name}
+                      class="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <h2 class="text-xl font-semibold text-gray-900 leading-tight">
+                      {p.name}
+                    </h2>
+                    {p.description && (
+                      <p class="text-gray-600 text-sm line-clamp-3 leading-relaxed">
+                        {p.description}
+                      </p>
+                    )}
+                    <div class="pt-2">
+                      <p class="text-lg font-bold text-gray-900">
+                        {p.default_price?.unit_amount != null
+                          ? formatMoney(
+                            p.default_price.unit_amount,
+                            p.default_price.currency,
+                          )
+                          : (
+                            <span class="text-gray-500 font-normal">
+                              Price not available
+                            </span>
+                          )}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
       </div>
     </div>
   );
