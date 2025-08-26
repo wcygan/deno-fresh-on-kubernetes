@@ -29,7 +29,7 @@ RUN deno cache main.ts dev.ts
 RUN deno task build
 
 # Production stage
-FROM denoland/deno:latest
+FROM denoland/deno:latest AS production
 
 # Deno user already exists in base image
 

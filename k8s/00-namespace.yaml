@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: deno-fresh-example
+  labels:
+    name: deno-fresh-example
+---

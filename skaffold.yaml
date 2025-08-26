@@ -1,0 +1,15 @@
+apiVersion: skaffold/v2beta29
+kind: Config
+metadata:
+  name: fresh-on-k8s
+deploy:
+  kubectl:
+    defaultNamespace: deno-fresh-example
+    manifests:
+      - k8s/*.yaml
+portForward:
+  - resourceType: service
+    resourceName: frontend
+    namespace: deno-fresh-example
+    port: 80
+    localPort: 8080
