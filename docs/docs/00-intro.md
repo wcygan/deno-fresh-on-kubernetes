@@ -4,7 +4,13 @@ sidebar_position: 1
 
 # Deno Fresh on Kubernetes
 
-**Goal**: Run a [Deno Fresh](https://fresh.deno.dev/) application (with [Stripe](https://stripe.com/) integration) on a [Kubernetes](https://kubernetes.io/) cluster:
+**Goal**: Run a [Deno Fresh](https://fresh.deno.dev/) application (with [Stripe](https://stripe.com/) integration) on a [Kubernetes](https://kubernetes.io/) cluster.
+
+**Why**: I want an easy and reliable way of spinning up new applications and deploying them in my basement. I would like to supply all secrets through Kubernetes Secrets. [NextJS makes this hard](https://nextjs.org/docs/pages/guides/environment-variables#bundling-environment-variables-for-the-browser) (Or maybe it's a skill issue). 
+
+## Sketch
+
+Here's what it might look like:
 
 ```mermaid
 graph LR
