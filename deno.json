@@ -1,5 +1,6 @@
 {
   "tasks": {
-    "docs": "cd docs && bun start"
+    "docs": "cd docs && bun start",
+    "dev": "cd frontend && deno task dev"
   }
 }
