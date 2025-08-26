@@ -1,11 +1,11 @@
-name: Deploy Docusaurus to GitHub Pages
+name: Deploy Documentation
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
     paths:
-      - "docs/**"
-      - ".github/workflows/deploy-docs.yml"
+      - 'docs/**'
+      - '.github/workflows/docs-deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -23,31 +23,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: "18"
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
+          bun-version: latest
 
       - name: Install dependencies
-        working-directory: docs
-        run: npm install
+        run: |
+          cd docs
+          bun install
 
-      - name: Build website
-        working-directory: docs
-        run: npm run build
+      - name: Build site
+        run: |
+          cd docs
+          bun run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs/build
+          path: docs/build
 
   deploy:
     environment:
