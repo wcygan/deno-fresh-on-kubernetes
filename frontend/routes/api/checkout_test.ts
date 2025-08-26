@@ -8,7 +8,7 @@ Deno.env.set("STRIPE_SECRET_KEY", "sk_test_mock");
 // Mock Stripe for testing - must be set up before importing handler
 const mockStripe = {
   prices: {
-    retrieve: async (priceId: string) => {
+    retrieve: (priceId: string) => {
       if (priceId === "price_invalid") {
         throw new Error("No such price");
       }
@@ -30,7 +30,7 @@ const mockStripe = {
   },
   checkout: {
     sessions: {
-      create: async (params: Record<string, unknown>, _options: unknown) => {
+      create: (params: Record<string, unknown>, _options: unknown) => {
         return Promise.resolve({
           id: "cs_test_123",
           url: "https://checkout.stripe.com/c/pay/test_123",
@@ -42,9 +42,10 @@ const mockStripe = {
 };
 
 // Mock the Stripe module
-const originalStripe = (globalThis as any).Stripe;
 // @ts-ignore: Mocking for tests
-(globalThis as any).Stripe = function () {
+const originalStripe = (globalThis as unknown as { Stripe?: unknown }).Stripe;
+// @ts-ignore: Mocking for tests
+(globalThis as unknown as { Stripe: unknown }).Stripe = function () {
   return mockStripe;
 };
 
@@ -290,5 +291,5 @@ Deno.test({
 // Restore original Stripe
 if (originalStripe) {
   // @ts-ignore: Restoring after test
-  (globalThis as any).Stripe = originalStripe;
+  (globalThis as unknown as { Stripe: unknown }).Stripe = originalStripe;
 }
