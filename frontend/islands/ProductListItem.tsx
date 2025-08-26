@@ -3,6 +3,7 @@ import type { CartItemDisplay } from "../lib/schemas.ts";
 import { addToCart } from "../lib/cart-state.ts";
 import { formatMoney } from "../lib/money.ts";
 import { Button } from "../components/Button.tsx";
+import { useState } from "preact/hooks";
 
 interface ProductListItemProps {
   // Pass only serializable data to the island
@@ -24,6 +25,7 @@ export default function ProductListItem({
   unitAmount,
   currency,
 }: ProductListItemProps) {
+  const [isSuccess, setIsSuccess] = useState(false);
   const isAvailable = priceId && unitAmount != null;
 
   function handleAddToCart() {
@@ -42,6 +44,12 @@ export default function ProductListItem({
     };
 
     addToCart(cartItem);
+    setIsSuccess(true);
+
+    // Reset success state after animation
+    setTimeout(() => {
+      setIsSuccess(false);
+    }, 750);
   }
 
   return (
@@ -76,10 +84,11 @@ export default function ProductListItem({
             </p>
             <Button
               type="button"
-              disabled={!isAvailable}
+              disabled={!isAvailable || isSuccess}
               onClick={handleAddToCart}
               variant="primary"
               size="md"
+              success={isSuccess}
             >
               Add to Cart
             </Button>

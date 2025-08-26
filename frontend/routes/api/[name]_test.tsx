@@ -8,7 +8,8 @@ Deno.test("API route capitalizes name parameter", async () => {
     state: { shared: "test" },
   };
 
-  const response = await handler.GET?.(mockContext as any);
+  // @ts-ignore: Test context mock
+  const response = await handler.GET?.(mockContext);
   const text = await response?.text();
 
   assertEquals(text, "Hello, John!");
@@ -21,7 +22,8 @@ Deno.test("API route handles empty name", async () => {
     state: { shared: "test" },
   };
 
-  const response = await handler.GET?.(mockContext as any);
+  // @ts-ignore: Test context mock
+  const response = await handler.GET?.(mockContext);
   const text = await response?.text();
 
   assertEquals(text, "Hello, !");
@@ -34,7 +36,8 @@ Deno.test("API route preserves already capitalized names", async () => {
     state: { shared: "test" },
   };
 
-  const response = await handler.GET?.(mockContext as any);
+  // @ts-ignore: Test context mock
+  const response = await handler.GET?.(mockContext);
   const text = await response?.text();
 
   assertEquals(text, "Hello, ALICE!");

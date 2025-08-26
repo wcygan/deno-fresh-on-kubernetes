@@ -55,235 +55,235 @@ Deno.test({
   name: "POST /api/checkout",
   ignore: true, // Skip until proper Stripe mocking is implemented
   fn: async (t) => {
-  await t.step("creates checkout session with valid request", async () => {
-    const validRequest: CheckoutCreateRequest = {
-      items: [
-        {
-          priceId: "price_valid",
-          productId: "prod_test",
-          quantity: 2,
-        },
-      ],
-      customerEmail: "test@example.com",
-    };
+    await t.step("creates checkout session with valid request", async () => {
+      const validRequest: CheckoutCreateRequest = {
+        items: [
+          {
+            priceId: "price_valid",
+            productId: "prod_test",
+            quantity: 2,
+          },
+        ],
+        customerEmail: "test@example.com",
+      };
 
-    const request = new Request("http://localhost:8000/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(validRequest),
+      const request = new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validRequest),
+      });
+
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
+
+      assertEquals(response.status, 200);
+
+      const data = await response.json();
+      assertExists(data.sessionId);
+      assertExists(data.url);
+      assertEquals(data.sessionId, "cs_test_123");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("rejects request with invalid price ID", async () => {
+      const invalidRequest = {
+        items: [
+          {
+            priceId: "invalid_price",
+            productId: "prod_test",
+            quantity: 1,
+          },
+        ],
+      };
 
-    assertEquals(response.status, 200);
+      const request = new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invalidRequest),
+      });
 
-    const data = await response.json();
-    assertExists(data.sessionId);
-    assertExists(data.url);
-    assertEquals(data.sessionId, "cs_test_123");
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("rejects request with invalid price ID", async () => {
-    const invalidRequest = {
-      items: [
-        {
-          priceId: "invalid_price",
-          productId: "prod_test",
-          quantity: 1,
-        },
-      ],
-    };
+      assertEquals(response.status, 400);
 
-    const request = new Request("http://localhost:8000/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invalidRequest),
+      const data = await response.json();
+      assertExists(data.error);
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("rejects request with non-existent price", async () => {
+      const invalidRequest = {
+        items: [
+          {
+            priceId: "price_invalid",
+            productId: "prod_test",
+            quantity: 1,
+          },
+        ],
+      };
 
-    assertEquals(response.status, 400);
+      const request = new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invalidRequest),
+      });
 
-    const data = await response.json();
-    assertExists(data.error);
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("rejects request with non-existent price", async () => {
-    const invalidRequest = {
-      items: [
-        {
-          priceId: "price_invalid",
-          productId: "prod_test",
-          quantity: 1,
-        },
-      ],
-    };
+      assertEquals(response.status, 400);
 
-    const request = new Request("http://localhost:8000/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invalidRequest),
+      const data = await response.json();
+      assertExists(data.error);
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("rejects request with inactive price", async () => {
+      const invalidRequest = {
+        items: [
+          {
+            priceId: "price_inactive",
+            productId: "prod_test",
+            quantity: 1,
+          },
+        ],
+      };
 
-    assertEquals(response.status, 400);
+      const request = new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invalidRequest),
+      });
 
-    const data = await response.json();
-    assertExists(data.error);
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("rejects request with inactive price", async () => {
-    const invalidRequest = {
-      items: [
-        {
-          priceId: "price_inactive",
-          productId: "prod_test",
-          quantity: 1,
-        },
-      ],
-    };
+      assertEquals(response.status, 400);
 
-    const request = new Request("http://localhost:8000/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invalidRequest),
+      const data = await response.json();
+      assertEquals(data.error, "Price price_inactive is not active");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("rejects malformed JSON", async () => {
+      const request = new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "invalid json",
+      });
 
-    assertEquals(response.status, 400);
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-    const data = await response.json();
-    assertEquals(data.error, "Price price_inactive is not active");
-  });
+      assertEquals(response.status, 400);
 
-  await t.step("rejects malformed JSON", async () => {
-    const request = new Request("http://localhost:8000/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "invalid json",
+      const data = await response.json();
+      assertExists(data.error);
+      assertEquals(data.error, "Invalid request");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("rejects empty items array", async () => {
+      const invalidRequest = {
+        items: [],
+      };
 
-    assertEquals(response.status, 400);
+      const request = new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invalidRequest),
+      });
 
-    const data = await response.json();
-    assertExists(data.error);
-    assertEquals(data.error, "Invalid request");
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("rejects empty items array", async () => {
-    const invalidRequest = {
-      items: [],
-    };
+      assertEquals(response.status, 400);
 
-    const request = new Request("http://localhost:8000/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invalidRequest),
+      const data = await response.json();
+      assertEquals(data.error, "Invalid request");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("rejects invalid quantity", async () => {
+      const invalidRequest = {
+        items: [
+          {
+            priceId: "price_valid",
+            productId: "prod_test",
+            quantity: 0, // Invalid quantity
+          },
+        ],
+      };
 
-    assertEquals(response.status, 400);
+      const request = new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invalidRequest),
+      });
 
-    const data = await response.json();
-    assertEquals(data.error, "Invalid request");
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("rejects invalid quantity", async () => {
-    const invalidRequest = {
-      items: [
-        {
-          priceId: "price_valid",
-          productId: "prod_test",
-          quantity: 0, // Invalid quantity
-        },
-      ],
-    };
+      assertEquals(response.status, 400);
 
-    const request = new Request("http://localhost:8000/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invalidRequest),
+      const data = await response.json();
+      assertEquals(data.error, "Invalid request");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("accepts valid customer email", async () => {
+      const validRequest = {
+        items: [
+          {
+            priceId: "price_valid",
+            productId: "prod_test",
+            quantity: 1,
+          },
+        ],
+        customerEmail: "customer@example.com",
+      };
 
-    assertEquals(response.status, 400);
+      const request = new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validRequest),
+      });
 
-    const data = await response.json();
-    assertEquals(data.error, "Invalid request");
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("accepts valid customer email", async () => {
-    const validRequest = {
-      items: [
-        {
-          priceId: "price_valid",
-          productId: "prod_test",
-          quantity: 1,
-        },
-      ],
-      customerEmail: "customer@example.com",
-    };
-
-    const request = new Request("http://localhost:8000/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(validRequest),
+      assertEquals(response.status, 200);
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("rejects invalid customer email", async () => {
+      const invalidRequest = {
+        items: [
+          {
+            priceId: "price_valid",
+            productId: "prod_test",
+            quantity: 1,
+          },
+        ],
+        customerEmail: "invalid-email", // Invalid email format
+      };
 
-    assertEquals(response.status, 200);
-  });
+      const request = new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invalidRequest),
+      });
 
-  await t.step("rejects invalid customer email", async () => {
-    const invalidRequest = {
-      items: [
-        {
-          priceId: "price_valid",
-          productId: "prod_test",
-          quantity: 1,
-        },
-      ],
-      customerEmail: "invalid-email", // Invalid email format
-    };
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-    const request = new Request("http://localhost:8000/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invalidRequest),
+      assertEquals(response.status, 400);
+
+      const data = await response.json();
+      assertEquals(data.error, "Invalid request");
     });
-
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
-
-    assertEquals(response.status, 400);
-
-    const data = await response.json();
-    assertEquals(data.error, "Invalid request");
-  });
   },
 });
 

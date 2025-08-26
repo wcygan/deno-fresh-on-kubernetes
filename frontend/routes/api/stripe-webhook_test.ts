@@ -101,135 +101,138 @@ const originalStripe = (globalThis as any).Stripe;
 const { handler } = await import("./stripe-webhook.ts");
 
 Deno.test({
-  name: "POST /api/stripe-webhook", 
+  name: "POST /api/stripe-webhook",
   ignore: true, // Skip until proper Stripe mocking is implemented
   fn: async (t) => {
-  await t.step("handles checkout.session.completed event", async () => {
-    const request = new Request("http://localhost:8000/api/stripe-webhook", {
-      method: "POST",
-      headers: {
-        "stripe-signature": "t=123,v1=checkout_completed",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        id: "evt_test",
-        type: "checkout.session.completed",
-      }),
+    await t.step("handles checkout.session.completed event", async () => {
+      const request = new Request("http://localhost:8000/api/stripe-webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "t=123,v1=checkout_completed",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "evt_test",
+          type: "checkout.session.completed",
+        }),
+      });
+
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
+
+      assertEquals(response.status, 200);
+      assertEquals(await response.text(), "Webhook handled successfully");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("handles payment_intent.succeeded event", async () => {
+      const request = new Request("http://localhost:8000/api/stripe-webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "t=123,v1=payment_succeeded",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "evt_test",
+          type: "payment_intent.succeeded",
+        }),
+      });
 
-    assertEquals(response.status, 200);
-    assertEquals(await response.text(), "Webhook handled successfully");
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("handles payment_intent.succeeded event", async () => {
-    const request = new Request("http://localhost:8000/api/stripe-webhook", {
-      method: "POST",
-      headers: {
-        "stripe-signature": "t=123,v1=payment_succeeded",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        id: "evt_test",
-        type: "payment_intent.succeeded",
-      }),
+      assertEquals(response.status, 200);
+      assertEquals(await response.text(), "Webhook handled successfully");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("handles payment_intent.payment_failed event", async () => {
+      const request = new Request("http://localhost:8000/api/stripe-webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "t=123,v1=payment_failed",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "evt_test",
+          type: "payment_intent.payment_failed",
+        }),
+      });
 
-    assertEquals(response.status, 200);
-    assertEquals(await response.text(), "Webhook handled successfully");
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("handles payment_intent.payment_failed event", async () => {
-    const request = new Request("http://localhost:8000/api/stripe-webhook", {
-      method: "POST",
-      headers: {
-        "stripe-signature": "t=123,v1=payment_failed",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        id: "evt_test",
-        type: "payment_intent.payment_failed",
-      }),
+      assertEquals(response.status, 200);
+      assertEquals(await response.text(), "Webhook handled successfully");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("handles unhandled event types", async () => {
+      const request = new Request("http://localhost:8000/api/stripe-webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "t=123,v1=unhandled",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "evt_test",
+          type: "invoice.payment_succeeded",
+        }),
+      });
 
-    assertEquals(response.status, 200);
-    assertEquals(await response.text(), "Webhook handled successfully");
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("handles unhandled event types", async () => {
-    const request = new Request("http://localhost:8000/api/stripe-webhook", {
-      method: "POST",
-      headers: {
-        "stripe-signature": "t=123,v1=unhandled",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        id: "evt_test",
-        type: "invoice.payment_succeeded",
-      }),
+      assertEquals(response.status, 200);
+      assertEquals(await response.text(), "Webhook handled successfully");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("rejects request without signature", async () => {
+      const request = new Request("http://localhost:8000/api/stripe-webhook", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "evt_test",
+          type: "checkout.session.completed",
+        }),
+      });
 
-    assertEquals(response.status, 200);
-    assertEquals(await response.text(), "Webhook handled successfully");
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("rejects request without signature", async () => {
-    const request = new Request("http://localhost:8000/api/stripe-webhook", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        id: "evt_test",
-        type: "checkout.session.completed",
-      }),
+      assertEquals(response.status, 400);
+      assertEquals(await response.text(), "Missing signature");
     });
 
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
+    await t.step("rejects request with invalid signature", async () => {
+      const request = new Request("http://localhost:8000/api/stripe-webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "invalid",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: "evt_test",
+          type: "checkout.session.completed",
+        }),
+      });
 
-    assertEquals(response.status, 400);
-    assertEquals(await response.text(), "Missing signature");
-  });
+      const context = { req: request };
+      // @ts-ignore: Simplified context for testing
+      const response = await handler.POST(context);
 
-  await t.step("rejects request with invalid signature", async () => {
-    const request = new Request("http://localhost:8000/api/stripe-webhook", {
-      method: "POST",
-      headers: {
-        "stripe-signature": "invalid",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        id: "evt_test",
-        type: "checkout.session.completed",
-      }),
+      assertEquals(response.status, 400);
+
+      const text = await response.text();
+      assertEquals(
+        text.includes("Webhook signature verification failed"),
+        true,
+      );
     });
-
-    const context = { req: request };
-    // @ts-ignore: Simplified context for testing
-    const response = await handler.POST(context);
-
-    assertEquals(response.status, 400);
-
-    const text = await response.text();
-    assertEquals(text.includes("Webhook signature verification failed"), true);
-  });
   },
 });
 

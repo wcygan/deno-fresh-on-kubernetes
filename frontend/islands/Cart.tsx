@@ -1,5 +1,5 @@
 // frontend/islands/Cart.tsx
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import {
   cartItems,
   cartTotal,
@@ -16,6 +16,8 @@ import { Button } from "../components/Button.tsx";
  * Main Cart component
  */
 export default function Cart() {
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
   // Load cart on component mount
   useEffect(loadCart, []);
 
@@ -26,6 +28,8 @@ export default function Cart() {
     if (cartItems.value.length === 0) {
       return;
     }
+
+    setIsCheckingOut(true);
 
     try {
       // Build checkout payload
@@ -52,6 +56,7 @@ export default function Cart() {
 
         // TODO: Show user-friendly error message
         alert("Checkout failed. Please try again.");
+        setIsCheckingOut(false);
         return;
       }
 
@@ -66,6 +71,7 @@ export default function Cart() {
     } catch (error) {
       console.error("Checkout error:", error);
       alert("Something went wrong. Please try again.");
+      setIsCheckingOut(false);
     }
   }
 
@@ -203,6 +209,7 @@ export default function Cart() {
                 variant="primary"
                 size="lg"
                 class="w-full"
+                loading={isCheckingOut}
               >
                 Checkout
               </Button>
