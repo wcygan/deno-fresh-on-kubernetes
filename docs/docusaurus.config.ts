@@ -68,6 +68,7 @@ const config: Config = {
       logo: {
         alt: 'Fresh on k8s Logo',
         src: 'img/logo.svg',
+        href: '/deno-fresh-on-kubernetes/intro',
       },
       items: [
         {
@@ -91,7 +92,7 @@ const config: Config = {
           items: [
             {
               label: 'Tutorial',
-              to: 'intro',
+              to: '/deno-fresh-on-kubernetes/intro',
             },
           ],
         },
