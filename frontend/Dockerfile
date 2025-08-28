@@ -13,6 +13,10 @@ RUN deno cache --reload deno.json
 # Build stage
 FROM denoland/deno:latest AS builder
 
+# Set environment variables for consistent caching
+ENV DENO_DIR=/deno-dir
+ENV DENO_NO_UPDATE_CHECK=1
+
 WORKDIR /app
 
 # Copy cached dependencies from deps stage
@@ -28,6 +32,19 @@ RUN deno cache main.ts dev.ts
 # Build the application
 RUN deno task build
 
+# Cache all server dependencies including deno serve internals
+RUN deno cache _fresh/server.js
+
+# Explicitly cache Fresh internal modules that are loaded at runtime
+RUN deno cache --reload jsr:@fresh/core/src/internals.ts || true
+RUN deno cache --reload jsr:@fresh/core/src/internal.ts || true
+
+# Pre-run the server to force all runtime dependencies to download
+RUN timeout 3 deno run --allow-all _fresh/server.js & sleep 2 && kill %1 || true
+
+# Also pre-warm deno serve with the actual server
+RUN timeout 3 deno serve --allow-all _fresh/server.js & sleep 2 && kill %1 || true
+
 # Production stage
 FROM denoland/deno:latest AS production
 
@@ -36,8 +53,10 @@ FROM denoland/deno:latest AS production
 WORKDIR /app
 
 # Set environment variables
-ENV DENO_DIR=/deno-dir/
+ENV DENO_DIR=/deno-dir
 ENV DENO_DEPLOYMENT_ID=docker
+ENV DENO_NO_UPDATE_CHECK=1
+ENV DENO_NO_PROMPT=1
 
 # Copy built application and cached dependencies
 COPY --from=builder --chown=deno:deno /app .
@@ -53,5 +72,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8000/ || exit 1
 
-# Start the application
+# Start the application using deno serve
 CMD ["deno", "task", "start"]

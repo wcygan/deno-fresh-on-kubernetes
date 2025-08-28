@@ -1,0 +1,59 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: deno-fresh-example-ingress
+  namespace: deno-fresh-example
+  labels:
+    app: frontend
+    component: ingress
+    managed-by: skaffold
+  annotations:
+    # SSL Certificate Management
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+
+    # External DNS Configuration
+    external-dns.alpha.kubernetes.io/target: "external.wcygan.net"
+    external-dns.alpha.kubernetes.io/hostname: "deno-fresh-example.wcygan.net"
+
+    # NGINX Ingress Configuration
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+
+    # Buffering (safe defaults for SSR apps)
+    nginx.ingress.kubernetes.io/proxy-buffering: "on"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$request_uri"
+
+    # Security Headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self';" always;
+
+    # Basic rate limiting (tune as needed)
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+
+spec:
+  ingressClassName: external
+  tls:
+    - hosts:
+        - deno-fresh-example.wcygan.net
+      secretName: deno-fresh-example-wcygan-net-tls
+  rules:
+    - host: deno-fresh-example.wcygan.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+

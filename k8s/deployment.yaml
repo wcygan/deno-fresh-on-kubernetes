@@ -15,45 +15,63 @@ spec:
       labels:
         app: frontend
     spec:
+      serviceAccountName: deno-fresh-example
       securityContext:
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: web
-          image: ghcr.io/wcygan/deno-fresh-on-kubernetes/frontend:latest
+          image: ghcr.io/wcygan/deno-fresh-on-kubernetes/frontend:fix-v4
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
           env:
             - name: PORT
               value: "8000"
+            - name: DENO_DIR
+              value: "/deno-dir"
+            - name: DENO_NO_UPDATE_CHECK
+              value: "1"
+            - name: DENO_DEPLOYMENT_ID
+              value: "k8s-deployment"
             # Stripe configuration from secrets
             - name: STRIPE_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: stripe-secrets
+                  name: deno-fresh-example-secrets
                   key: STRIPE_SECRET_KEY
             - name: STRIPE_WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: stripe-secrets
+                  name: deno-fresh-example-secrets
                   key: STRIPE_WEBHOOK_SECRET
             - name: STRIPE_PUBLISHABLE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: stripe-secrets
+                  name: deno-fresh-example-secrets
                   key: STRIPE_PUBLISHABLE_KEY
                   optional: true
+          startupProbe:
+            httpGet:
+              path: /
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 30
+            successThreshold: 1
           readinessProbe:
             httpGet:
               path: /
               port: 8000
             periodSeconds: 5
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
           livenessProbe:
             httpGet:
               path: /
               port: 8000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 10
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
