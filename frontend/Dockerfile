@@ -1,66 +1,35 @@
-# Multi-stage build for optimal layer caching
-FROM denoland/deno:latest AS deps
-
-# Create app directory
-WORKDIR /app
-
-# Copy dependency manifest first for better caching
-COPY deno.json ./
-
-# Cache dependencies - this layer only changes when deps change
-RUN deno cache --reload deno.json
-
 # Build stage
 FROM denoland/deno:latest AS builder
 
-# Set environment variables for consistent caching
-ENV DENO_DIR=/deno-dir
-ENV DENO_NO_UPDATE_CHECK=1
-
 WORKDIR /app
 
-# Copy cached dependencies from deps stage
-COPY --from=deps /deno-dir /deno-dir
-COPY --from=deps /app /app
-
-# Copy source code
+# Copy all source files
 COPY . .
 
-# Cache main application dependencies
-RUN deno cache main.ts dev.ts
+# Cache dependencies and install Node modules for Tailwind with scripts
+RUN deno cache main.ts dev.ts && \
+    deno install --allow-scripts=npm:@tailwindcss/oxide@4.1.12 --node-modules-dir=auto
 
-# Build the application
-RUN deno task build
+# Run the build task which uses the Builder with Tailwind plugin
+RUN deno task build && \
+    echo "=== Checking build output ===" && \
+    ls -la _fresh/static/ && \
+    cat _fresh/static/styles.css | wc -c
 
-# Cache all server dependencies including deno serve internals
-RUN deno cache _fresh/server.js
+# Production stage  
+FROM denoland/deno:latest
 
-# Explicitly cache Fresh internal modules that are loaded at runtime
-RUN deno cache --reload jsr:@fresh/core/src/internals.ts || true
-RUN deno cache --reload jsr:@fresh/core/src/internal.ts || true
-
-# Pre-run the server to force all runtime dependencies to download
-RUN timeout 3 deno run --allow-all _fresh/server.js & sleep 2 && kill %1 || true
-
-# Also pre-warm deno serve with the actual server
-RUN timeout 3 deno serve --allow-all _fresh/server.js & sleep 2 && kill %1 || true
-
-# Production stage
-FROM denoland/deno:latest AS production
-
-# Deno user already exists in base image
+# Set deployment ID
+ARG GIT_REVISION=unknown
+ENV DENO_DEPLOYMENT_ID=${GIT_REVISION}
 
 WORKDIR /app
 
-# Set environment variables
-ENV DENO_DIR=/deno-dir
-ENV DENO_DEPLOYMENT_ID=docker
-ENV DENO_NO_UPDATE_CHECK=1
-ENV DENO_NO_PROMPT=1
+# Copy the entire app from builder
+COPY --from=builder /app .
 
-# Copy built application and cached dependencies
-COPY --from=builder --chown=deno:deno /app .
-COPY --from=builder --chown=deno:deno /deno-dir /deno-dir
+# Ensure proper permissions for deno user
+RUN chown -R deno:deno /app
 
 # Switch to non-root user
 USER deno
@@ -72,5 +41,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8000/ || exit 1
 
-# Start the application using deno serve
+# Run the production server
 CMD ["deno", "task", "start"]
