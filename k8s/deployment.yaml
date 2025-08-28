@@ -21,7 +21,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: web
-          image: ghcr.io/wcygan/deno-fresh-on-kubernetes/frontend:latest
+          image: ghcr.io/wcygan/deno-fresh-on-kubernetes/frontend:sha-d51d0c62b1c85919bab5e072f90d0829e48005a5
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
