@@ -142,6 +142,84 @@ Deno.test("checkout rate limiting works", async () => {
   assertEquals(res2.status, 429);
 });
 
+Deno.test("checkout generates unique idempotency keys for repeated requests", async () => {
+  const capturedKeys: string[] = [];
+  
+  // Enhanced fake Stripe that captures idempotency keys
+  const fake = {
+    prices: {
+      retrieve: async (priceId: string, _o?: any) => ({
+        id: priceId,
+        active: true,
+        unit_amount: 1999,
+        currency: "usd",
+        product: { id: "prod_123" },
+      }),
+    },
+    checkout: {
+      sessions: {
+        create: async (_params: any, options?: any) => {
+          // Capture the idempotency key
+          if (options?.idempotencyKey) {
+            capturedKeys.push(options.idempotencyKey);
+          }
+          return {
+            id: "cs_test_123",
+            url: "https://checkout.stripe.com/c/pay/test_123",
+          };
+        },
+      },
+    },
+    products: { list: async () => ({ data: [] }) },
+  };
+  setStripeForTests(fake as any);
+
+  const body = {
+    items: [{ priceId: "price_1", productId: "prod_123", quantity: 2 }],
+  };
+
+  // Make first request
+  const ctx1 = createMockContext(
+    new Request("http://x/api/checkout", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "192.168.1.200",
+      },
+      body: JSON.stringify(body),
+    }),
+  );
+  const res1 = await handler.POST!(ctx1);
+  assertEquals(res1.status, 200);
+
+  // Wait a millisecond to ensure different timestamp
+  await new Promise(resolve => setTimeout(resolve, 1));
+
+  // Make second request with identical data
+  const ctx2 = createMockContext(
+    new Request("http://x/api/checkout", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "192.168.1.201", // Different IP to avoid rate limiting
+      },
+      body: JSON.stringify(body),
+    }),
+  );
+  const res2 = await handler.POST!(ctx2);
+  assertEquals(res2.status, 200);
+
+  // Verify we captured two different idempotency keys
+  assertEquals(capturedKeys.length, 2, "Should have captured 2 idempotency keys");
+  assertEquals(capturedKeys[0] !== capturedKeys[1], true, "Idempotency keys should be different");
+  
+  // Verify both keys are non-empty strings
+  assertEquals(typeof capturedKeys[0], "string");
+  assertEquals(typeof capturedKeys[1], "string");
+  assertEquals(capturedKeys[0].length > 0, true);
+  assertEquals(capturedKeys[1].length > 0, true);
+});
+
 Deno.test("checkout comprehensive validation", async (t) => {
   await t.step("rejects inactive price", async () => {
     setupFakeStripe();

@@ -129,7 +129,13 @@ export const handler = define.handlers({
         }));
 
       // 5. Generate idempotency key to prevent duplicate sessions
-      const idempotencyKey = await sha256Hash({ items, customerEmail });
+      // Include requestId and timestamp to ensure each checkout attempt is unique
+      const idempotencyKey = await sha256Hash({
+        items,
+        customerEmail,
+        requestId: ctx.state.requestId,
+        timestamp: Date.now(),
+      });
 
       // 6. Create Stripe Checkout Session
       const origin = new URL(ctx.req.url).origin;
