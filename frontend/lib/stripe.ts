@@ -76,10 +76,15 @@ export function getStripe(): StripeLike {
   if (_injected) return _injected;
   const key = Deno.env.get("STRIPE_SECRET_KEY");
   if (!key) throw new Error("STRIPE_SECRET_KEY is required");
+
+  // Create Stripe client with Deno-compatible configuration
   const client = new Stripe(key, {
     apiVersion: "2025-02-24.acacia",
     httpClient: Stripe.createFetchHttpClient(),
+    // @ts-ignore - Use Node crypto compatibility shim for webhooks
+    telemetry: false,
   });
+
   return client as unknown as StripeLike;
 }
 
