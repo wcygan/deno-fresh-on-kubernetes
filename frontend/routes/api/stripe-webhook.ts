@@ -1,23 +1,16 @@
 // frontend/routes/api/stripe-webhook.ts
 import { define } from "../../utils.ts";
 import Stripe from "stripe";
+import { getStripe } from "../../lib/stripe.ts";
 
 // Environment variables
-const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
 const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-
-if (!STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is required");
-}
 
 if (!STRIPE_WEBHOOK_SECRET) {
   throw new Error("STRIPE_WEBHOOK_SECRET is required for webhook security");
 }
 
-const stripe = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: "2025-02-24.acacia",
-  httpClient: Stripe.createFetchHttpClient(),
-});
+const stripe = getStripe();
 
 /**
  * Read raw request body for webhook signature verification

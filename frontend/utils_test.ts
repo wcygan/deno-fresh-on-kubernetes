@@ -6,12 +6,14 @@ Deno.test("define export exists and is an object", () => {
   assertEquals(typeof define, "object");
 });
 
-Deno.test("State interface has shared property", () => {
+Deno.test("State interface has required properties", () => {
   const testState: State = {
     shared: "test value",
+    requestId: "test-request-id",
   };
 
   assertEquals(testState.shared, "test value");
+  assertEquals(testState.requestId, "test-request-id");
 });
 
 Deno.test("define has expected Fresh helper methods", () => {

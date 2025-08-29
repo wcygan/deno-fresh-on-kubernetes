@@ -5,16 +5,17 @@ import {
   CheckoutCreateResponse,
 } from "../../lib/schemas.ts";
 import { getStripe } from "../../lib/stripe.ts";
+import { RateLimiter } from "../../lib/rate-limiter.ts";
 
-const bucket = new Map<string, number>(); // ip -> lastTs
-function rateLimit(req: Request): boolean {
-  const ip = req.headers.get("cf-connecting-ip") ??
-    req.headers.get("x-forwarded-for") ?? "unknown";
-  const now = Date.now();
-  const last = bucket.get(ip) ?? 0;
-  if (now - last < 1500) return false; // 1.5s between attempts
-  bucket.set(ip, now);
-  return true;
+const limiter = new RateLimiter(1, 1500); // 1 request / 1.5s
+
+function getClientIp(req: Request): string {
+  return (
+    req.headers.get("cf-connecting-ip") ??
+      req.headers.get("x-forwarded-for") ??
+      req.headers.get("x-real-ip") ??
+      ""
+  );
 }
 
 /**
@@ -43,8 +44,18 @@ async function sha256Hash(input: unknown): Promise<string> {
 export const handler = define.handlers({
   async POST(ctx) {
     try {
-      if (!rateLimit(ctx.req)) {
-        return Response.json({ error: "Too many requests" }, { status: 429 });
+      const ip = getClientIp(ctx.req);
+      if (ip && !limiter.isAllowed(ip)) {
+        const retryAfter = Math.ceil(
+          (limiter.getResetTime(ip) - Date.now()) / 1000,
+        );
+        return new Response(JSON.stringify({ error: "Too many requests" }), {
+          status: 429,
+          headers: {
+            "content-type": "application/json",
+            "retry-after": String(Math.max(1, retryAfter)),
+          },
+        });
       }
 
       const stripe = getStripe();
@@ -52,9 +63,12 @@ export const handler = define.handlers({
       const payload = await parseJson<unknown>(ctx.req);
       const parseResult = CheckoutCreateRequest.safeParse(payload);
 
+      const dev = Deno.env.get("NODE_ENV") !== "production";
       if (!parseResult.success) {
         return Response.json(
-          { error: "Invalid request", details: parseResult.error.flatten() },
+          dev
+            ? { error: "Invalid request", details: parseResult.error.flatten() }
+            : { error: "Invalid request" },
           { status: 400 },
         );
       }
@@ -82,7 +96,10 @@ export const handler = define.handlers({
 
           priceMap.set(priceId, price);
         } catch (error) {
-          console.error(`Failed to retrieve price ${priceId}:`, error);
+          ctx.state.logger?.error(
+            `Failed to retrieve price ${priceId}:`,
+            error,
+          );
           return Response.json(
             { error: `Invalid price ID: ${priceId}` },
             { status: 400 },
@@ -127,6 +144,7 @@ export const handler = define.handlers({
         cancel_url: cancelUrl,
         metadata: {
           ...(metadata ?? {}),
+          request_id: ctx.state.requestId,
           cart_hash: await sha256Hash(items),
         },
         ...(customerEmail && { customer_email: customerEmail }),
@@ -145,7 +163,7 @@ export const handler = define.handlers({
 
       return Response.json(response, { status: 200 });
     } catch (error) {
-      console.error("Checkout API error:", error);
+      ctx.state.logger?.error("Checkout API error:", error);
 
       return Response.json(
         { error: "Internal server error" },

@@ -3,6 +3,22 @@ import { handler } from "./checkout.ts";
 import { setStripeForTests } from "../../lib/stripe.ts";
 import type { CheckoutCreateRequest } from "../../lib/schemas.ts";
 
+// Create mock context with required state
+function createMockContext(req: Request): any {
+  return {
+    req,
+    state: {
+      requestId: "test-request-id",
+      logger: {
+        error: () => {},
+        info: () => {},
+        warn: () => {},
+        debug: () => {},
+      },
+    },
+  };
+}
+
 // Reset Stripe mock before each test
 function setupFakeStripe() {
   const fake = {
@@ -43,13 +59,13 @@ function setupFakeStripe() {
 
 Deno.test("checkout rejects invalid payload", async () => {
   setStripeForTests(null as any); // not used in this path
-  const ctx: any = {
-    req: new Request("http://x/api/checkout", {
+  const ctx = createMockContext(
+    new Request("http://x/api/checkout", {
       method: "POST",
       headers: { "x-forwarded-for": "192.168.1.1" },
       body: "{}",
     }),
-  };
+  );
   const res = await handler.POST!(ctx);
   assertEquals(res.status, 400);
 });
@@ -60,8 +76,8 @@ Deno.test("checkout validates price->product alignment", async () => {
   const body = {
     items: [{ priceId: "price_1", productId: "prod_wrong", quantity: 1 }],
   };
-  const ctx: any = {
-    req: new Request("http://x/api/checkout", {
+  const ctx = createMockContext(
+    new Request("http://x/api/checkout", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -69,7 +85,7 @@ Deno.test("checkout validates price->product alignment", async () => {
       },
       body: JSON.stringify(body),
     }),
-  };
+  );
   const res = await handler.POST!(ctx);
   assertEquals(res.status, 400);
 });
@@ -80,8 +96,8 @@ Deno.test("checkout happy path creates session", async () => {
   const body = {
     items: [{ priceId: "price_1", productId: "prod_123", quantity: 2 }],
   };
-  const ctx: any = {
-    req: new Request("http://x/api/checkout", {
+  const ctx = createMockContext(
+    new Request("http://x/api/checkout", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -89,7 +105,7 @@ Deno.test("checkout happy path creates session", async () => {
       },
       body: JSON.stringify(body),
     }),
-  };
+  );
   const res = await handler.POST!(ctx);
   assertEquals(res.status, 200);
   const json = await res.json();
@@ -104,8 +120,8 @@ Deno.test("checkout rate limiting works", async () => {
     items: [{ priceId: "price_1", productId: "prod_123", quantity: 1 }],
   };
   const makeRequest = () => {
-    const ctx: any = {
-      req: new Request("http://x/api/checkout", {
+    const ctx = createMockContext(
+      new Request("http://x/api/checkout", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -113,7 +129,7 @@ Deno.test("checkout rate limiting works", async () => {
         },
         body: JSON.stringify(body),
       }),
-    };
+    );
     return handler.POST!(ctx);
   };
 
@@ -140,8 +156,8 @@ Deno.test("checkout comprehensive validation", async (t) => {
       ],
     };
 
-    const ctx: any = {
-      req: new Request("http://localhost:8000/api/checkout", {
+    const ctx = createMockContext(
+      new Request("http://localhost:8000/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -149,7 +165,7 @@ Deno.test("checkout comprehensive validation", async (t) => {
         },
         body: JSON.stringify(invalidRequest),
       }),
-    };
+    );
 
     const response = await handler.POST!(ctx);
     assertEquals(response.status, 400);
@@ -161,8 +177,8 @@ Deno.test("checkout comprehensive validation", async (t) => {
   await t.step("rejects malformed JSON", async () => {
     setupFakeStripe();
 
-    const ctx: any = {
-      req: new Request("http://localhost:8000/api/checkout", {
+    const ctx = createMockContext(
+      new Request("http://localhost:8000/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -170,7 +186,7 @@ Deno.test("checkout comprehensive validation", async (t) => {
         },
         body: "invalid json",
       }),
-    };
+    );
 
     const response = await handler.POST!(ctx);
     assertEquals(response.status, 400);
@@ -187,8 +203,8 @@ Deno.test("checkout comprehensive validation", async (t) => {
       items: [],
     };
 
-    const ctx: any = {
-      req: new Request("http://localhost:8000/api/checkout", {
+    const ctx = createMockContext(
+      new Request("http://localhost:8000/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -196,7 +212,7 @@ Deno.test("checkout comprehensive validation", async (t) => {
         },
         body: JSON.stringify(invalidRequest),
       }),
-    };
+    );
 
     const response = await handler.POST!(ctx);
     assertEquals(response.status, 400);
@@ -219,8 +235,8 @@ Deno.test("checkout comprehensive validation", async (t) => {
       customerEmail: "customer@example.com",
     };
 
-    const ctx: any = {
-      req: new Request("http://localhost:8000/api/checkout", {
+    const ctx = createMockContext(
+      new Request("http://localhost:8000/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -228,7 +244,7 @@ Deno.test("checkout comprehensive validation", async (t) => {
         },
         body: JSON.stringify(validRequest),
       }),
-    };
+    );
 
     const response = await handler.POST!(ctx);
     assertEquals(response.status, 200);

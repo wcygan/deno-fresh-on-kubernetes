@@ -24,6 +24,7 @@ export function Button({
   success = false,
   children,
   disabled,
+  type = "button",
   ...rest
 }: ButtonProps) {
   const classes = [
@@ -37,6 +38,7 @@ export function Button({
   return (
     <button
       {...rest}
+      type={type}
       class={classes}
       disabled={disabled || loading}
     >

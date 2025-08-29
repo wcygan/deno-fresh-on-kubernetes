@@ -21,7 +21,10 @@ jobs:
         run: |
           deno fmt --check
           deno lint
-          deno check main.ts
+          deno check -A dev.ts
+          deno check -A routes/_app.tsx
+          deno check -A routes/**/*.ts*
+          deno check -A lib/**/*.ts*
       - name: Test
         working-directory: frontend
         run: deno test -A

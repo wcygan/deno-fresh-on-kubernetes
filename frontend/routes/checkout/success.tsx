@@ -4,17 +4,9 @@ import { define } from "../../utils.ts";
 import Stripe from "stripe";
 import { CheckoutSuccessQuery } from "../../lib/schemas.ts";
 import { formatMoney } from "../../lib/money.ts";
+import { getStripe } from "../../lib/stripe.ts";
 
-// Get Stripe instance
-const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
-if (!STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is required");
-}
-
-const stripe = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: "2025-02-24.acacia",
-  httpClient: Stripe.createFetchHttpClient(),
-});
+const stripe = getStripe();
 
 interface LineItemDisplay {
   id: string;
@@ -68,12 +60,6 @@ export default define.page(async (ctx) => {
           currency: price.currency ?? currency,
         };
       },
-    );
-
-    // 5. Calculate total for verification (for potential future use)
-    const _calculatedTotal = lineItems.reduce(
-      (sum, item) => sum + (item.unitAmount * item.quantity),
-      0,
     );
 
     return (

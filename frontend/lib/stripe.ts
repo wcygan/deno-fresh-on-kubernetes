@@ -52,7 +52,18 @@ export interface StripeLike {
         p: Stripe.Checkout.SessionCreateParams,
         o?: Stripe.RequestOptions,
       ) => Promise<Stripe.Response<Stripe.Checkout.Session>>;
+      retrieve: (
+        id: string,
+        args?: Stripe.Checkout.SessionRetrieveParams,
+      ) => Promise<Stripe.Response<Stripe.Checkout.Session>>;
     };
+  };
+  webhooks: {
+    constructEvent: (
+      payload: string | Uint8Array,
+      signature: string,
+      secret: string,
+    ) => Stripe.Event;
   };
 }
 

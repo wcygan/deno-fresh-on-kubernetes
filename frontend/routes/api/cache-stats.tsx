@@ -4,6 +4,9 @@ import { getCacheStats } from "../../lib/stripe.ts";
 
 export const handler = define.handlers({
   GET() {
+    const dev = Deno.env.get("NODE_ENV") !== "production";
+    if (!dev) return new Response("Not found", { status: 404 });
+
     const stats = getCacheStats();
     return Response.json({
       cache: {
