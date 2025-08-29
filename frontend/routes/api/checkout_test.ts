@@ -144,7 +144,7 @@ Deno.test("checkout rate limiting works", async () => {
 
 Deno.test("checkout generates unique idempotency keys for repeated requests", async () => {
   const capturedKeys: string[] = [];
-  
+
   // Enhanced fake Stripe that captures idempotency keys
   const fake = {
     prices: {
@@ -193,7 +193,7 @@ Deno.test("checkout generates unique idempotency keys for repeated requests", as
   assertEquals(res1.status, 200);
 
   // Wait a millisecond to ensure different timestamp
-  await new Promise(resolve => setTimeout(resolve, 1));
+  await new Promise((resolve) => setTimeout(resolve, 1));
 
   // Make second request with identical data
   const ctx2 = createMockContext(
@@ -210,9 +210,17 @@ Deno.test("checkout generates unique idempotency keys for repeated requests", as
   assertEquals(res2.status, 200);
 
   // Verify we captured two different idempotency keys
-  assertEquals(capturedKeys.length, 2, "Should have captured 2 idempotency keys");
-  assertEquals(capturedKeys[0] !== capturedKeys[1], true, "Idempotency keys should be different");
-  
+  assertEquals(
+    capturedKeys.length,
+    2,
+    "Should have captured 2 idempotency keys",
+  );
+  assertEquals(
+    capturedKeys[0] !== capturedKeys[1],
+    true,
+    "Idempotency keys should be different",
+  );
+
   // Verify both keys are non-empty strings
   assertEquals(typeof capturedKeys[0], "string");
   assertEquals(typeof capturedKeys[1], "string");

@@ -5,6 +5,7 @@ import Stripe from "stripe";
 import { CheckoutSuccessQuery } from "../../lib/schemas.ts";
 import { formatMoney } from "../../lib/money.ts";
 import { getStripe } from "../../lib/stripe.ts";
+import ClearCartOnSuccess from "../../islands/ClearCartOnSuccess.tsx";
 
 const stripe = getStripe();
 
@@ -179,6 +180,9 @@ export default define.page(async (ctx) => {
             </p>
           </div>
         </div>
+
+        {/* Clear cart after successful checkout */}
+        <ClearCartOnSuccess />
       </div>
     );
   } catch (error) {
