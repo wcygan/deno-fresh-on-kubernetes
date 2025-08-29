@@ -1,21 +1,21 @@
 // frontend/routes/api/checkout.ts
 import { define } from "../../utils.ts";
-import Stripe from "stripe";
 import {
   CheckoutCreateRequest,
   CheckoutCreateResponse,
 } from "../../lib/schemas.ts";
+import { getStripe } from "../../lib/stripe.ts";
 
-// Get Stripe instance from environment
-const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
-if (!STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is required");
+const bucket = new Map<string, number>(); // ip -> lastTs
+function rateLimit(req: Request): boolean {
+  const ip = req.headers.get("cf-connecting-ip") ??
+    req.headers.get("x-forwarded-for") ?? "unknown";
+  const now = Date.now();
+  const last = bucket.get(ip) ?? 0;
+  if (now - last < 1500) return false; // 1.5s between attempts
+  bucket.set(ip, now);
+  return true;
 }
-
-const stripe = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: "2025-02-24.acacia",
-  httpClient: Stripe.createFetchHttpClient(),
-});
 
 /**
  * Parse JSON body from request with error handling
@@ -43,6 +43,11 @@ async function sha256Hash(input: unknown): Promise<string> {
 export const handler = define.handlers({
   async POST(ctx) {
     try {
+      if (!rateLimit(ctx.req)) {
+        return Response.json({ error: "Too many requests" }, { status: 429 });
+      }
+
+      const stripe = getStripe();
       // 1. Parse and validate request payload
       const payload = await parseJson<unknown>(ctx.req);
       const parseResult = CheckoutCreateRequest.safeParse(payload);
@@ -60,7 +65,7 @@ export const handler = define.handlers({
       const uniquePriceIds = Array.from(
         new Set(items.map((item) => item.priceId)),
       );
-      const priceMap = new Map<string, Stripe.Response<Stripe.Price>>();
+      const priceMap = new Map<string, unknown>();
 
       for (const priceId of uniquePriceIds) {
         try {
@@ -88,7 +93,7 @@ export const handler = define.handlers({
       // 3. Verify price-product alignment (optional integrity check)
       for (const item of items) {
         const price = priceMap.get(item.priceId)!;
-        const product = price.product as Stripe.Product;
+        const product = (price as { product?: { id?: string } }).product;
 
         if (product?.id && item.productId !== product.id) {
           return Response.json({
@@ -99,7 +104,7 @@ export const handler = define.handlers({
       }
 
       // 4. Build checkout line items from verified prices
-      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items
+      const lineItems = items
         .map((item) => ({
           price: item.priceId,
           quantity: item.quantity,
@@ -115,8 +120,8 @@ export const handler = define.handlers({
         `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${origin}/`;
 
-      const sessionParams: Stripe.Checkout.SessionCreateParams = {
-        mode: "payment",
+      const sessionParams = {
+        mode: "payment" as const,
         line_items: lineItems,
         success_url: successUrl,
         cancel_url: cancelUrl,
@@ -124,12 +129,8 @@ export const handler = define.handlers({
           ...(metadata ?? {}),
           cart_hash: await sha256Hash(items),
         },
+        ...(customerEmail && { customer_email: customerEmail }),
       };
-
-      // Add customer email if provided
-      if (customerEmail) {
-        sessionParams.customer_email = customerEmail;
-      }
 
       const session = await stripe.checkout.sessions.create(
         sessionParams,

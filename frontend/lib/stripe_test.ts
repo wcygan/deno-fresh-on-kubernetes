@@ -162,7 +162,6 @@ Deno.test("cache management functions work correctly", () => {
   // Check cache stats
   const stats = stripe.getCacheStats();
   assertExists(stats.keys);
-  assertExists(stats.stats);
   assertEquals(typeof stats.keys, "number");
 });
 

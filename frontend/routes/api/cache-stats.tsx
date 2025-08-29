@@ -8,12 +8,11 @@ export const handler = define.handlers({
     return Response.json({
       cache: {
         keys: stats.keys,
-        hits: stats.stats.hits,
-        misses: stats.stats.misses,
-        hitRate: stats.stats.hits > 0
-          ? ((stats.stats.hits / (stats.stats.hits + stats.stats.misses)) * 100)
-            .toFixed(2) + "%"
-          : "0%",
+        // TTL cache doesn't track hits/misses like NodeCache did
+        hits: 0,
+        misses: 0,
+        hitRate: "N/A",
+        note: "TTL cache implementation doesn't track hit/miss statistics",
       },
       timestamp: new Date().toISOString(),
     });

@@ -1,295 +1,236 @@
-// frontend/routes/api/checkout_test.ts
 import { assertEquals, assertExists } from "jsr:@std/assert";
+import { handler } from "./checkout.ts";
+import { setStripeForTests } from "../../lib/stripe.ts";
 import type { CheckoutCreateRequest } from "../../lib/schemas.ts";
 
-// Set up environment variable for tests
-Deno.env.set("STRIPE_SECRET_KEY", "sk_test_mock");
-
-// Mock Stripe for testing - must be set up before importing handler
-const mockStripe = {
-  prices: {
-    retrieve: (priceId: string) => {
-      if (priceId === "price_invalid") {
-        throw new Error("No such price");
-      }
-      if (priceId === "price_inactive") {
-        return Promise.resolve({
+// Reset Stripe mock before each test
+function setupFakeStripe() {
+  const fake = {
+    prices: {
+      retrieve: async (priceId: string, _o?: any) => {
+        if (priceId === "price_invalid") {
+          throw new Error("No such price");
+        }
+        if (priceId === "price_inactive") {
+          return {
+            id: priceId,
+            active: false,
+            product: { id: "prod_test" },
+          };
+        }
+        return {
           id: priceId,
-          active: false,
-          product: { id: "prod_test" },
-        });
-      }
-      return Promise.resolve({
-        id: priceId,
-        active: true,
-        unit_amount: 1999,
-        currency: "usd",
-        product: { id: "prod_test" },
-      });
-    },
-  },
-  checkout: {
-    sessions: {
-      create: (params: Record<string, unknown>, _options: unknown) => {
-        return Promise.resolve({
-          id: "cs_test_123",
-          url: "https://checkout.stripe.com/c/pay/test_123",
-          ...params,
-        });
+          active: true,
+          unit_amount: 1999,
+          currency: "usd",
+          product: { id: "prod_123" },
+        };
       },
     },
-  },
-};
+    checkout: {
+      sessions: {
+        create: async (_params: any, _options?: any) => ({
+          id: "cs_test_123",
+          url: "https://checkout.stripe.com/c/pay/test_123",
+        }),
+      },
+    },
+    products: { list: async () => ({ data: [] }) },
+  };
+  setStripeForTests(fake as any);
+  return fake;
+}
 
-// Mock the Stripe module
-// @ts-ignore: Mocking for tests
-const originalStripe = (globalThis as unknown as { Stripe?: unknown }).Stripe;
-// @ts-ignore: Mocking for tests
-(globalThis as unknown as { Stripe: unknown }).Stripe = function () {
-  return mockStripe;
-};
-
-// Import handler after setting up the mock
-const { handler } = await import("./checkout.ts");
-
-Deno.test({
-  name: "POST /api/checkout",
-  ignore: true, // Skip until proper Stripe mocking is implemented
-  fn: async (t) => {
-    await t.step("creates checkout session with valid request", async () => {
-      const validRequest: CheckoutCreateRequest = {
-        items: [
-          {
-            priceId: "price_valid",
-            productId: "prod_test",
-            quantity: 2,
-          },
-        ],
-        customerEmail: "test@example.com",
-      };
-
-      const request = new Request("http://localhost:8000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validRequest),
-      });
-
-      const context = { req: request };
-      // @ts-ignore: Simplified context for testing
-      const response = await handler.POST(context);
-
-      assertEquals(response.status, 200);
-
-      const data = await response.json();
-      assertExists(data.sessionId);
-      assertExists(data.url);
-      assertEquals(data.sessionId, "cs_test_123");
-    });
-
-    await t.step("rejects request with invalid price ID", async () => {
-      const invalidRequest = {
-        items: [
-          {
-            priceId: "invalid_price",
-            productId: "prod_test",
-            quantity: 1,
-          },
-        ],
-      };
-
-      const request = new Request("http://localhost:8000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(invalidRequest),
-      });
-
-      const context = { req: request };
-      // @ts-ignore: Simplified context for testing
-      const response = await handler.POST(context);
-
-      assertEquals(response.status, 400);
-
-      const data = await response.json();
-      assertExists(data.error);
-    });
-
-    await t.step("rejects request with non-existent price", async () => {
-      const invalidRequest = {
-        items: [
-          {
-            priceId: "price_invalid",
-            productId: "prod_test",
-            quantity: 1,
-          },
-        ],
-      };
-
-      const request = new Request("http://localhost:8000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(invalidRequest),
-      });
-
-      const context = { req: request };
-      // @ts-ignore: Simplified context for testing
-      const response = await handler.POST(context);
-
-      assertEquals(response.status, 400);
-
-      const data = await response.json();
-      assertExists(data.error);
-    });
-
-    await t.step("rejects request with inactive price", async () => {
-      const invalidRequest = {
-        items: [
-          {
-            priceId: "price_inactive",
-            productId: "prod_test",
-            quantity: 1,
-          },
-        ],
-      };
-
-      const request = new Request("http://localhost:8000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(invalidRequest),
-      });
-
-      const context = { req: request };
-      // @ts-ignore: Simplified context for testing
-      const response = await handler.POST(context);
-
-      assertEquals(response.status, 400);
-
-      const data = await response.json();
-      assertEquals(data.error, "Price price_inactive is not active");
-    });
-
-    await t.step("rejects malformed JSON", async () => {
-      const request = new Request("http://localhost:8000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "invalid json",
-      });
-
-      const context = { req: request };
-      // @ts-ignore: Simplified context for testing
-      const response = await handler.POST(context);
-
-      assertEquals(response.status, 400);
-
-      const data = await response.json();
-      assertExists(data.error);
-      assertEquals(data.error, "Invalid request");
-    });
-
-    await t.step("rejects empty items array", async () => {
-      const invalidRequest = {
-        items: [],
-      };
-
-      const request = new Request("http://localhost:8000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(invalidRequest),
-      });
-
-      const context = { req: request };
-      // @ts-ignore: Simplified context for testing
-      const response = await handler.POST(context);
-
-      assertEquals(response.status, 400);
-
-      const data = await response.json();
-      assertEquals(data.error, "Invalid request");
-    });
-
-    await t.step("rejects invalid quantity", async () => {
-      const invalidRequest = {
-        items: [
-          {
-            priceId: "price_valid",
-            productId: "prod_test",
-            quantity: 0, // Invalid quantity
-          },
-        ],
-      };
-
-      const request = new Request("http://localhost:8000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(invalidRequest),
-      });
-
-      const context = { req: request };
-      // @ts-ignore: Simplified context for testing
-      const response = await handler.POST(context);
-
-      assertEquals(response.status, 400);
-
-      const data = await response.json();
-      assertEquals(data.error, "Invalid request");
-    });
-
-    await t.step("accepts valid customer email", async () => {
-      const validRequest = {
-        items: [
-          {
-            priceId: "price_valid",
-            productId: "prod_test",
-            quantity: 1,
-          },
-        ],
-        customerEmail: "customer@example.com",
-      };
-
-      const request = new Request("http://localhost:8000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validRequest),
-      });
-
-      const context = { req: request };
-      // @ts-ignore: Simplified context for testing
-      const response = await handler.POST(context);
-
-      assertEquals(response.status, 200);
-    });
-
-    await t.step("rejects invalid customer email", async () => {
-      const invalidRequest = {
-        items: [
-          {
-            priceId: "price_valid",
-            productId: "prod_test",
-            quantity: 1,
-          },
-        ],
-        customerEmail: "invalid-email", // Invalid email format
-      };
-
-      const request = new Request("http://localhost:8000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(invalidRequest),
-      });
-
-      const context = { req: request };
-      // @ts-ignore: Simplified context for testing
-      const response = await handler.POST(context);
-
-      assertEquals(response.status, 400);
-
-      const data = await response.json();
-      assertEquals(data.error, "Invalid request");
-    });
-  },
+Deno.test("checkout rejects invalid payload", async () => {
+  setStripeForTests(null as any); // not used in this path
+  const ctx: any = {
+    req: new Request("http://x/api/checkout", {
+      method: "POST",
+      headers: { "x-forwarded-for": "192.168.1.1" },
+      body: "{}",
+    }),
+  };
+  const res = await handler.POST!(ctx);
+  assertEquals(res.status, 400);
 });
 
-// Restore original Stripe
-if (originalStripe) {
-  // @ts-ignore: Restoring after test
-  (globalThis as unknown as { Stripe: unknown }).Stripe = originalStripe;
-}
+Deno.test("checkout validates price->product alignment", async () => {
+  setupFakeStripe();
+
+  const body = {
+    items: [{ priceId: "price_1", productId: "prod_wrong", quantity: 1 }],
+  };
+  const ctx: any = {
+    req: new Request("http://x/api/checkout", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "192.168.1.2",
+      },
+      body: JSON.stringify(body),
+    }),
+  };
+  const res = await handler.POST!(ctx);
+  assertEquals(res.status, 400);
+});
+
+Deno.test("checkout happy path creates session", async () => {
+  setupFakeStripe();
+
+  const body = {
+    items: [{ priceId: "price_1", productId: "prod_123", quantity: 2 }],
+  };
+  const ctx: any = {
+    req: new Request("http://x/api/checkout", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "192.168.1.3",
+      },
+      body: JSON.stringify(body),
+    }),
+  };
+  const res = await handler.POST!(ctx);
+  assertEquals(res.status, 200);
+  const json = await res.json();
+  assertEquals(typeof json.sessionId, "string");
+  assertEquals(typeof json.url, "string");
+});
+
+Deno.test("checkout rate limiting works", async () => {
+  setupFakeStripe();
+
+  const body = {
+    items: [{ priceId: "price_1", productId: "prod_123", quantity: 1 }],
+  };
+  const makeRequest = () => {
+    const ctx: any = {
+      req: new Request("http://x/api/checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "192.168.1.100", // same IP for rate limiting
+        },
+        body: JSON.stringify(body),
+      }),
+    };
+    return handler.POST!(ctx);
+  };
+
+  // First request should succeed
+  const res1 = await makeRequest();
+  assertEquals(res1.status, 200);
+
+  // Second request immediately should be rate limited
+  const res2 = await makeRequest();
+  assertEquals(res2.status, 429);
+});
+
+Deno.test("checkout comprehensive validation", async (t) => {
+  await t.step("rejects inactive price", async () => {
+    setupFakeStripe();
+
+    const invalidRequest = {
+      items: [
+        {
+          priceId: "price_inactive",
+          productId: "prod_test",
+          quantity: 1,
+        },
+      ],
+    };
+
+    const ctx: any = {
+      req: new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "192.168.1.4",
+        },
+        body: JSON.stringify(invalidRequest),
+      }),
+    };
+
+    const response = await handler.POST!(ctx);
+    assertEquals(response.status, 400);
+
+    const data = await response.json();
+    assertEquals(data.error, "Price price_inactive is not active");
+  });
+
+  await t.step("rejects malformed JSON", async () => {
+    setupFakeStripe();
+
+    const ctx: any = {
+      req: new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "192.168.1.5",
+        },
+        body: "invalid json",
+      }),
+    };
+
+    const response = await handler.POST!(ctx);
+    assertEquals(response.status, 400);
+
+    const data = await response.json();
+    assertExists(data.error);
+    assertEquals(data.error, "Invalid request");
+  });
+
+  await t.step("rejects empty items array", async () => {
+    setupFakeStripe();
+
+    const invalidRequest = {
+      items: [],
+    };
+
+    const ctx: any = {
+      req: new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "192.168.1.6",
+        },
+        body: JSON.stringify(invalidRequest),
+      }),
+    };
+
+    const response = await handler.POST!(ctx);
+    assertEquals(response.status, 400);
+
+    const data = await response.json();
+    assertEquals(data.error, "Invalid request");
+  });
+
+  await t.step("accepts valid customer email", async () => {
+    setupFakeStripe();
+
+    const validRequest: CheckoutCreateRequest = {
+      items: [
+        {
+          priceId: "price_1", // use existing mock price ID
+          productId: "prod_123",
+          quantity: 1,
+        },
+      ],
+      customerEmail: "customer@example.com",
+    };
+
+    const ctx: any = {
+      req: new Request("http://localhost:8000/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "192.168.1.7",
+        },
+        body: JSON.stringify(validRequest),
+      }),
+    };
+
+    const response = await handler.POST!(ctx);
+    assertEquals(response.status, 200);
+  });
+});

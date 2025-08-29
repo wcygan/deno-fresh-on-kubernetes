@@ -17,6 +17,7 @@ import { Button } from "../components/Button.tsx";
  */
 export default function Cart() {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load cart on component mount
   useEffect(loadCart, []);
@@ -30,6 +31,7 @@ export default function Cart() {
     }
 
     setIsCheckingOut(true);
+    setError(null);
 
     try {
       // Build checkout payload
@@ -53,9 +55,7 @@ export default function Cart() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("Checkout failed:", errorData);
-
-        // TODO: Show user-friendly error message
-        alert("Checkout failed. Please try again.");
+        setError("Checkout failed. Please try again.");
         setIsCheckingOut(false);
         return;
       }
@@ -70,7 +70,7 @@ export default function Cart() {
       }
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("Something went wrong. Please try again.");
+      setError("Something went wrong. Please try again.");
       setIsCheckingOut(false);
     }
   }
@@ -188,6 +188,11 @@ export default function Cart() {
               ))}
             </div>
 
+            {error && (
+              <div class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-3 py-2 mb-3 text-sm">
+                {error}
+              </div>
+            )}
             {/* Cart Summary */}
             <div class="border-t border-border pt-4 space-y-4">
               <div class="flex items-center justify-between">

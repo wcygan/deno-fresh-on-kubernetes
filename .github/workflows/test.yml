@@ -1,0 +1,27 @@
+name: Frontend Tests
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'frontend/**', '.github/workflows/test.yml' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'frontend/**', '.github/workflows/test.yml' ]
+  workflow_dispatch:
+
+jobs:
+  deno:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: 
+          deno-version: v1.x
+      - name: Format & Lint & Typecheck
+        working-directory: frontend
+        run: |
+          deno fmt --check
+          deno lint
+          deno check main.ts
+      - name: Test
+        working-directory: frontend
+        run: deno test -A

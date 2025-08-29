@@ -3,7 +3,7 @@ import { Head } from "fresh/runtime";
 import { define } from "../../utils.ts";
 import Stripe from "stripe";
 import { CheckoutSuccessQuery } from "../../lib/schemas.ts";
-import { formatMoney } from "../../lib/stripe.ts";
+import { formatMoney } from "../../lib/money.ts";
 
 // Get Stripe instance
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
