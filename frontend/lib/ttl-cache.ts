@@ -25,6 +25,13 @@ export class TTLCache<T> {
   }
 
   size() {
+    // Clean up expired entries while counting
+    const now = Date.now();
+    for (const [key, entry] of this.#map) {
+      if (now > entry.exp) {
+        this.#map.delete(key);
+      }
+    }
     return this.#map.size;
   }
 }

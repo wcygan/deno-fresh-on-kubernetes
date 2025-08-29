@@ -4,6 +4,7 @@ import { createDefine } from "fresh";
 // data among middlewares, layouts and routes across the application.
 export interface State {
   shared: string;
+  requestId?: string;
 }
 
 export const define = createDefine<State>();
